@@ -4,44 +4,13 @@ alias ba="bundle add"
 alias bck="bundle check"
 alias bcn="bundle clean"
 alias be="bundle exec"
-alias bi="bundle_install"
+alias bi="bundle install"
 alias bl="bundle list"
 alias bo="bundle open"
 alias bout="bundle outdated"
 alias bp="bundle package"
 alias bu="bundle update"
-
-## Functions
-
-bundle_install() {
-  # Bail out if bundler is not installed
-  if (( ! $+commands[bundle] )); then
-    echo "Bundler is not installed"
-    return 1
-  fi
-
-  # Bail out if not in a bundled project
-  if ! _within-bundled-project; then
-    echo "Can't 'bundle install' outside a bundled project"
-    return 1
-  fi
-
-  # Check the bundler version is at least 1.4.0
-  autoload -Uz is-at-least
-  local bundler_version=$(bundle version | cut -d' ' -f3)
-  if ! is-at-least 1.4.0 "$bundler_version"; then
-    bundle install "$@"
-    return $?
-  fi
-
-  # If bundler is at least 1.4.0, use all the CPU cores to bundle install
-  if [[ "$OSTYPE" = (darwin|freebsd)* ]]; then
-    local cores_num="$(sysctl -n hw.ncpu)"
-  else
-    local cores_num="$(nproc)"
-  fi
-  bundle install --jobs="$cores_num" "$@"
-}
+alias bua="bundle update --all"
 
 ## Gem wrapper
 
@@ -81,14 +50,12 @@ bundled_commands=(
 )
 
 # Remove $UNBUNDLED_COMMANDS from the bundled_commands list
-for cmd in $UNBUNDLED_COMMANDS; do
-  bundled_commands=(${bundled_commands#$cmd});
-done
+bundled_commands=(${bundled_commands:|UNBUNDLED_COMMANDS})
+unset UNBUNDLED_COMMANDS
 
 # Add $BUNDLED_COMMANDS to the bundled_commands list
-for cmd in $BUNDLED_COMMANDS; do
-  bundled_commands+=($cmd);
-done
+bundled_commands+=($BUNDLED_COMMANDS)
+unset BUNDLED_COMMANDS
 
 # Check if in the root or a subdirectory of a bundled project
 _within-bundled-project() {
@@ -126,5 +93,4 @@ for cmd in $bundled_commands; do
     compdef "_$cmd" "bundled_$cmd"="$cmd"
   fi
 done
-
 unset cmd bundled_commands
